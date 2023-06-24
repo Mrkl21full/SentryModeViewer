@@ -1,0 +1,15 @@
+{
+	"name": "tesla_sentrymode_viewer",
+	"version": "1.0",
+	"private": true,
+	"license": "UNLICENSED",
+	"authors": "Mrkl21full",
+	"description": "SASS to CSS compiler",
+	"scripts": {
+	  "scss": "node-sass --output-style compressed scss/style.scss -o css",
+	  "watch": "yarn run scss && node-sass -w --output-style compressed scss/style.scss -o css"
+	},
+	"dependencies": {
+	  "node-sass": "^6.0"
+	}
+  }

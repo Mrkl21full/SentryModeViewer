@@ -1,0 +1,16 @@
+# Ignore ddev files.
+/.ddev/apache
+/.ddev/db-build
+/.ddev/web-build
+/.ddev/providers
+/.ddev/nginx_full
+/.ddev/commands/db
+/.ddev/commands/solr
+/.ddev/homeadditions
+/.ddev/mutagen
+/.ddev/web-entrypoint.d
+/.ddev/xhprof
+
+# Ignore development directories and files.
+/src/node_modules
+/src/yarn.lock

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="theme-color" content="#0DC2FF" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Tesla SentryMode viewer | EverGames Network</title>
+	<meta name="title" content="Tesla SentryMode viewer | EverGames Network">
+	<meta name="description" content="Tesla SentryMode viewer | EverGames Network">
+
+	<meta property="og:type" content="website">
+	<meta property="og:url" content="https://tesla.evergames.pl/">
+	<meta property="og:title" content="Tesla SentryMode viewer | EverGames Network">
+	<meta property="og:description" content="Tesla SentryMode viewer | EverGames Network">
+
+	<meta property="twitter:card" content="summary_large_image">
+	<meta property="twitter:url" content="https://tesla.evergames.pl/">
+	<meta property="twitter:title" content="Tesla SentryMode viewer | EverGames Network">
+	<meta property="twitter:description" content="Tesla SentryMode viewer | EverGames Network">
+
+    <link rel="Shortcut icon" href="https://www.evergames.pl/themes/custom/EverGames/image/icon/logo.png" />
+	<link rel="stylesheet" type="text/css" href="src/css/style.css" />
+	<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+    <div class="sentry">
+		<div class="sentry--white">
+			<div class="sentry__header wrapper--data">
+				<div class="sentry__header--item">
+					<i class="fa-solid fa-list-ul" data-video-browser></i>
+					<input type="file" webkitdirectory="true" multiple="" accept="video/mp4,video/x-m4v,video/*" data-video-input />
+				</div>
+				<div class="sentry__header--item">
+					<p data-video-event-message>Choose Tesla Sentry / Dashcam directory by clicking on the list icon on the left to begin.</p>
+				</div>
+				<div class="sentry__header--item">
+					<i class="fa-solid fa-info-circle" data-currently-not-available-info></i>
+				</div>
+			</div>
+		</div>
+		<div class="sentry--black">
+			<div class="sentry__body wrapper">
+				<div class="sentry__body--windows">
+					<div class="sentry__body--window active" data-position="top-left">
+						<video type="video/mp4" data-video-type="front"></video>
+						<p>Front</p>
+					</div>
+					<div class="sentry__body--window" data-position="top-right">
+						<p>Rear</p>
+						<video type="video/mp4" data-video-type="rear"></video>
+					</div>
+					<div class="sentry__body--window" data-position="bottom-left">
+						<p>Left</p>
+						<video type="video/mp4" data-video-type="left_repeater"></video>
+					</div>
+					<div class="sentry__body--window" data-position="bottom-right">
+						<p>Right</p>
+						<video type="video/mp4" data-video-type="right_repeater"></video>
+					</div>
+				</div>
+				<div class="sentry__body--playback">
+					<video type="video/mp4" data-main></video>
+				</div>
+			</div>
+		</div>
+		<div class="sentry--white">
+			<div class="sentry__footer wrapper--data">
+				<div class="sentry__footer--item">
+					<i class="fa-solid fa-play" data-video-toggle></i>
+				</div>
+				<div class="sentry__footer--item">
+					<div class="sentry__footer--playback">
+						<div class="sentry__footer--playback__current" data-playback-current>
+							00:00
+						</div>
+						<div class="sentry__footer--playback__timeline">
+							<div class="time-slider" data-playback-slider>
+								<div class="time-slider-tracker" data-playback-slider-tracker></div>
+							</div>
+							<div class="time-slider-time" data-playback-slider-tracker-time></div>
+							<div class="time-slider-event" data-playback-slider-tracker-event></div>
+						</div>
+						<div class="sentry__footer--playback__duration" data-playback-duration>
+							00:00
+						</div>
+					</div>
+				</div>
+				<div class="sentry__footer--item">
+					<i class="fa-solid fa-camera" data-currently-not-available></i>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script src="src/js/script.js"></script>
+</body>
+</html>

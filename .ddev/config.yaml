@@ -1,0 +1,50 @@
+# Project name.
+name: tesla-sentrymode
+
+# Project type.
+type: php
+
+# Path for index file.
+docroot: .
+
+# PHP version.
+php_version: '8.1'
+
+# Server type.
+webserver_type: nginx-fpm
+
+# Exposed ports for router.
+router_http_port: '80'
+router_https_port: '443'
+
+# xDebug.
+xdebug_enabled: false
+
+# Timezone.
+timezone: Europe/Warsaw
+
+# Composer & nodejs versions.
+nodejs_version: '14'
+composer_version: '2'
+
+# Database version.
+database:
+  type: mariadb
+  version: '10.3'
+
+# Allow using NFS to mount project into the container for performance reasons.
+nfs_mount_enabled: false
+
+# Determinate if FQDN should be accessible from web (true if not).
+use_dns_when_possible: false
+
+# Enables Mutagen asynchronous caching globally for all projects.
+mutagen_enabled: false
+
+# Add extra webimage packages.
+webimage_extra_packages: [python, make, blackfire]
+
+# Web envs.
+web_environment:
+  # Global settings.
+  - ENV=development

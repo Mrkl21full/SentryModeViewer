@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# shellcheck disable=SC2164
+cd /var/www/html/src
+
+# Check if node_modules exists in sub-theme directory.
+if ! [ -d /var/www/html/src/node_modules ]; then
+  # Install all yarn dependencies.
+  yarn install
+fi
+
+# Check if user wants instant-update.
+if [ "$1" == "watch" ]; then
+  # If so watch files.
+  yarn run watch
+else
+  # If not run default compile.
+  yarn run scss
+fi
