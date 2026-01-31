@@ -14,3 +14,7 @@
 # Ignore development directories and files.
 /src/node_modules
 /src/yarn.lock
+
+# IDE directories.
+/.idea
+/.vscode
