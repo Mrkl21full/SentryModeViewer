@@ -2,7 +2,7 @@
 
 In some simple words "SentryMode Viewer" is just basic (belive me it's really basic, based purly on JS only) video "playback". It allows us Tesla owners to just copy all directories from drive where SentryMode saves all the events. 
 
-[Tesla SentryMode Viewer](https://tesla.evergames.pl/ "Tesla SentryMode Viewer")
+[Tesla SentryMode Viewer](https://mrkl21full.github.io/SentryModeViewer/ "Tesla SentryMode Viewer")
 
 
 ## Installation

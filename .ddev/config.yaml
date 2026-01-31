@@ -8,7 +8,7 @@ type: php
 docroot: .
 
 # PHP version.
-php_version: '8.1'
+php_version: '8.4'
 
 # Server type.
 webserver_type: nginx-fpm
@@ -24,25 +24,14 @@ xdebug_enabled: false
 timezone: Europe/Warsaw
 
 # Composer & nodejs versions.
-nodejs_version: '14'
+nodejs_version: '24'
 composer_version: '2'
 
-# Database version.
-database:
-  type: mariadb
-  version: '10.3'
-
-# Allow using NFS to mount project into the container for performance reasons.
-nfs_mount_enabled: false
-
-# Determinate if FQDN should be accessible from web (true if not).
-use_dns_when_possible: false
-
-# Enables Mutagen asynchronous caching globally for all projects.
+# Enables Mutagen asynchronous caching for project.
 mutagen_enabled: false
 
 # Add extra webimage packages.
-webimage_extra_packages: [python, make, blackfire]
+webimage_extra_packages: []
 
 # Web envs.
 web_environment:

@@ -2,97 +2,196 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="theme-color" content="#0DC2FF" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#e85d4a">
 
-    <title>Tesla SentryMode viewer | EverGames Network</title>
-	<meta name="title" content="Tesla SentryMode viewer | EverGames Network">
-	<meta name="description" content="Tesla SentryMode viewer | EverGames Network">
+    <title>Tesla Sentry Mode Viewer - View and Analyze Your Tesla Camera Recordings</title>
+	<meta name="description" content="Free web-based viewer for Tesla Sentry Mode and Dashcam recordings. View multiple camera angles simultaneously with an intuitive grid layout and playback controls.">
+	<meta name="keywords" content="Tesla, Sentry Mode, Dashcam, Camera Viewer, Tesla Recordings, Multi-Camera View, Tesla Security, B-Pillar Camera, Video Playback, Tesla Model 3, Tesla Model Y, Tesla Model S, Tesla Model X">
+	<meta name="author" content="Mrkl21full">
+	<meta name="robots" content="index, follow">
+	<meta name="language" content="English">
+	<link rel="canonical" href="https://mrkl21full.github.io/SentryModeViewer/">
 
 	<meta property="og:type" content="website">
-	<meta property="og:url" content="https://tesla.evergames.pl/">
-	<meta property="og:title" content="Tesla SentryMode viewer | EverGames Network">
-	<meta property="og:description" content="Tesla SentryMode viewer | EverGames Network">
+	<meta property="og:url" content="https://mrkl21full.github.io/SentryModeViewer/">
+	<meta property="og:title" content="Tesla Sentry Mode Viewer - View and Analyze Your Tesla Camera Recordings">
+	<meta property="og:description" content="Free web-based viewer for Tesla Sentry Mode and Dashcam recordings. View multiple camera angles simultaneously with an intuitive grid layout and playback controls.">
+	<meta property="og:image" content="https://mrkl21full.github.io/SentryModeViewer/src/image/TeslaSentryMode.png?v=2.0">
+	<meta property="og:image:alt" content="Tesla Sentry Mode Viewer Interface">
+	<meta property="og:site_name" content="Tesla Sentry Mode Viewer">
+	<meta property="og:locale" content="en_US">
 
-	<meta property="twitter:card" content="summary_large_image">
-	<meta property="twitter:url" content="https://tesla.evergames.pl/">
-	<meta property="twitter:title" content="Tesla SentryMode viewer | EverGames Network">
-	<meta property="twitter:description" content="Tesla SentryMode viewer | EverGames Network">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:url" content="https://mrkl21full.github.io/SentryModeViewer/">
+	<meta name="twitter:title" content="Tesla Sentry Mode Viewer - View and Analyze Your Tesla Camera Recordings">
+	<meta name="twitter:description" content="Free web-based viewer for Tesla Sentry Mode and Dashcam recordings. View multiple camera angles simultaneously with an intuitive grid layout and playback controls.">
+	<meta name="twitter:image" content="https://mrkl21full.github.io/SentryModeViewer/src/image/TeslaSentryMode.png?v=2.0">
+	<meta name="twitter:creator" content="@mrkl21full">
 
-    <link rel="Shortcut icon" href="https://www.evergames.pl/themes/custom/EverGames/image/icon/logo.png" />
-	<link rel="stylesheet" type="text/css" href="src/css/style.css" />
-	<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="icon" type="image/png" href="src/image/icons/SentryMode.png?v=2.0">
+    <link rel="apple-touch-icon" href="src/image/icons/SentryMode.png?v=2.0">
+	<link rel="stylesheet" href="src/css/style.css?v=2.0">
+	<link rel="stylesheet" href="src/libs/all.min.css?v=2.0">
+
+	<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "SoftwareApplication",
+		"name": "Tesla Sentry Mode Viewer",
+		"applicationCategory": "MultimediaApplication",
+		"operatingSystem": "Web Browser",
+		"description": "Free web-based viewer for Tesla Sentry Mode and Dashcam recordings. View multiple camera angles simultaneously with an intuitive grid layout and playback controls.",
+		"author": {
+			"@type": "Person",
+			"name": "Mrkl21full",
+			"url": "https://github.com/Mrkl21full"
+		},
+		"offers": {
+			"@type": "Offer",
+			"price": "0",
+			"priceCurrency": "USD"
+		},
+		"aggregateRating": {
+			"@type": "AggregateRating",
+			"ratingValue": "5",
+			"ratingCount": "1"
+		},
+		"screenshot": "https://mrkl21full.github.io/SentryModeViewer/src/image/TeslaSentryMode.png?v=2.0",
+		"featureList": [
+			"Multi-camera grid view (2x2)",
+			"Support for 6 camera angles (Front, Rear, Left, Right, B-Pillar cameras)",
+			"Synchronized video playback",
+			"Timeline with event markers",
+			"15-second skip forward/backward",
+			"Jump to event feature",
+			"No installation required - runs in browser",
+			"Privacy-focused - all processing done locally"
+		],
+		"browserRequirements": "Requires modern browser with HTML5 video support and File System Access API"
+	}
+	</script>
 </head>
 <body>
-    <div class="sentry">
-		<div class="sentry--white">
-			<div class="sentry__header wrapper--data">
-				<div class="sentry__header--item">
-					<i class="fa-solid fa-list-ul" data-video-browser></i>
-					<input type="file" webkitdirectory="true" multiple="" accept="video/mp4,video/x-m4v,video/*" data-video-input />
-				</div>
-				<div class="sentry__header--item">
-					<p data-video-event-message>Choose Tesla Sentry / Dashcam directory by clicking on the list icon on the left to begin.</p>
-				</div>
-				<div class="sentry__header--item">
-					<i class="fa-solid fa-info-circle" data-currently-not-available-info></i>
-				</div>
-			</div>
-		</div>
-		<div class="sentry--black">
-			<div class="sentry__body wrapper">
-				<div class="sentry__body--windows">
-					<div class="sentry__body--window active" data-position="top-left">
-						<video type="video/mp4" data-video-type="front"></video>
-						<p>Front</p>
-					</div>
-					<div class="sentry__body--window" data-position="top-right">
-						<p>Rear</p>
-						<video type="video/mp4" data-video-type="rear"></video>
-					</div>
-					<div class="sentry__body--window" data-position="bottom-left">
-						<p>Left</p>
-						<video type="video/mp4" data-video-type="left_repeater"></video>
-					</div>
-					<div class="sentry__body--window" data-position="bottom-right">
-						<p>Right</p>
-						<video type="video/mp4" data-video-type="right_repeater"></video>
-					</div>
-				</div>
-				<div class="sentry__body--playback">
-					<video type="video/mp4" data-main></video>
+	<!--
+		Tesla Sentry Mode Viewer v2.0
+		Author: Mrkl21full (Krystian)
+		GitHub: https://github.com/Mrkl21full/SentryModeViewer
+		License: MIT
+		Description: Web-based viewer for Tesla Sentry Mode and Dashcam recordings
+	-->
+	<div class="sentry-viewer">
+		<div class="sentry-viewer__main">
+			<div class="sentry-viewer__top-overlay">
+				<button class="sentry-viewer__menu-btn" data-menu-toggle aria-label="Open folder picker">
+					<span class="sentry-viewer__menu-line"></span>
+					<span class="sentry-viewer__menu-line"></span>
+					<span class="sentry-viewer__menu-line"></span>
+				</button>
+				<div class="sentry-viewer__datetime" data-video-datetime>
+					Select recording folder
 				</div>
 			</div>
-		</div>
-		<div class="sentry--white">
-			<div class="sentry__footer wrapper--data">
-				<div class="sentry__footer--item">
-					<i class="fa-solid fa-play" data-video-toggle></i>
+
+			<div class="sentry-viewer__video-grid">
+				<div class="sentry-viewer__video-grid-cell">
+					<video class="sentry-viewer__video-grid-video" data-grid-video-type="front" muted playsinline preload="metadata"></video>
 				</div>
-				<div class="sentry__footer--item">
-					<div class="sentry__footer--playback">
-						<div class="sentry__footer--playback__current" data-playback-current>
-							00:00
+				<div class="sentry-viewer__video-grid-cell">
+					<video class="sentry-viewer__video-grid-video" data-grid-video-type="back" muted playsinline preload="metadata"></video>
+				</div>
+				<div class="sentry-viewer__video-grid-cell">
+					<video class="sentry-viewer__video-grid-video" data-grid-video-type="left_repeater" muted playsinline preload="metadata"></video>
+				</div>
+				<div class="sentry-viewer__video-grid-cell">
+					<video class="sentry-viewer__video-grid-video" data-grid-video-type="right_repeater" muted playsinline preload="metadata"></video>
+				</div>
+				<div class="sentry-viewer__video-grid-cell hidden">
+					<video class="sentry-viewer__video-grid-video" data-grid-video-type="left_pillar" muted playsinline preload="metadata"></video>
+				</div>
+				<div class="sentry-viewer__video-grid-cell hidden">
+					<video class="sentry-viewer__video-grid-video" data-grid-video-type="right_pillar" muted playsinline preload="metadata"></video>
+				</div>
+			</div>
+
+			<div class="sentry-viewer__bottom-controls">
+				<button class="sentry-viewer__jump-btn" data-jump-to-event>Jump to Event</button>
+
+				<div class="sentry-viewer__playback-panel">
+					<button class="sentry-viewer__playback-btn" data-rewind-15 aria-label="Rewind 15 seconds">
+						<i class="fa-solid fa-rotate-left"></i>
+						<span class="sentry-viewer__playback-label">15</span>
+					</button>
+					<button class="sentry-viewer__playback-btn sentry-viewer__playback-btn--play" data-video-toggle aria-label="Play/Pause">
+						<i class="fa-solid fa-play"></i>
+					</button>
+					<button class="sentry-viewer__playback-btn" data-forward-15 aria-label="Forward 15 seconds">
+						<i class="fa-solid fa-rotate-right"></i>
+						<span class="sentry-viewer__playback-label">15</span>
+					</button>
+				</div>
+			</div>
+
+			<div class="sentry-viewer__progress-container" role="progressbar" aria-label="Video progress">
+				<div class="sentry-viewer__progress-bar" data-playback-slider-tracker>
+					<div class="sentry-viewer__progress-fill"></div>
+				</div>
+				<div class="sentry-viewer__event-marker" data-playback-slider-tracker-event></div>
+			</div>
+		</div>
+
+		<div class="sentry-viewer__camera-selector">
+			<div class="sentry-viewer__thumb sentry-viewer__thumb--active" data-camera-position="grid">
+				<div class="sentry-viewer__thumb-preview">
+					<div class="sentry-viewer__thumb-grid">
+						<div class="sentry-viewer__thumb-grid-cell">
+							<video class="sentry-viewer__thumb-grid-video" data-thumb-grid-type="front" muted playsinline preload="metadata"></video>
 						</div>
-						<div class="sentry__footer--playback__timeline">
-							<div class="time-slider" data-playback-slider>
-								<div class="time-slider-tracker" data-playback-slider-tracker></div>
-							</div>
-							<div class="time-slider-time" data-playback-slider-tracker-time></div>
-							<div class="time-slider-event" data-playback-slider-tracker-event></div>
+						<div class="sentry-viewer__thumb-grid-cell">
+							<video class="sentry-viewer__thumb-grid-video" data-thumb-grid-type="back" muted playsinline preload="metadata"></video>
 						</div>
-						<div class="sentry__footer--playback__duration" data-playback-duration>
-							00:00
+						<div class="sentry-viewer__thumb-grid-cell">
+							<video class="sentry-viewer__thumb-grid-video" data-thumb-grid-type="left_repeater" muted playsinline preload="metadata"></video>
+						</div>
+						<div class="sentry-viewer__thumb-grid-cell">
+							<video class="sentry-viewer__thumb-grid-video" data-thumb-grid-type="right_repeater" muted playsinline preload="metadata"></video>
 						</div>
 					</div>
 				</div>
-				<div class="sentry__footer--item">
-					<i class="fa-solid fa-camera" data-currently-not-available></i>
-				</div>
+				<span class="sentry-viewer__thumb-label">Grid</span>
+			</div>
+
+			<div class="sentry-viewer__thumb" data-camera-position="front">
+				<video class="sentry-viewer__thumb-video" data-video-type="front" muted playsinline preload="metadata"></video>
+				<span class="sentry-viewer__thumb-label">Front</span>
+			</div>
+
+			<div class="sentry-viewer__thumb" data-camera-position="rear">
+				<video class="sentry-viewer__thumb-video" data-video-type="back" muted playsinline preload="metadata"></video>
+				<span class="sentry-viewer__thumb-label">Rear</span>
+			</div>
+
+			<div class="sentry-viewer__thumb" data-camera-position="left-repeater">
+				<video class="sentry-viewer__thumb-video" data-video-type="left_repeater" muted playsinline preload="metadata"></video>
+				<span class="sentry-viewer__thumb-label">Left</span>
+			</div>
+
+			<div class="sentry-viewer__thumb" data-camera-position="right-repeater">
+				<video class="sentry-viewer__thumb-video" data-video-type="right_repeater" muted playsinline preload="metadata"></video>
+				<span class="sentry-viewer__thumb-label">Right</span>
+			</div>
+
+			<div class="sentry-viewer__thumb" data-camera-position="left-pillar">
+				<video class="sentry-viewer__thumb-video" data-video-type="left_pillar" muted playsinline preload="metadata"></video>
+				<span class="sentry-viewer__thumb-label">Left Pillar</span>
+			</div>
+
+			<div class="sentry-viewer__thumb" data-camera-position="right-pillar">
+				<video class="sentry-viewer__thumb-video" data-video-type="right_pillar" muted playsinline preload="metadata"></video>
+				<span class="sentry-viewer__thumb-label">Right Pillar</span>
 			</div>
 		</div>
 	</div>
-	<script src="src/js/script.js"></script>
+	<script src="src/js/script.js?v=2.0"></script>
 </body>
 </html>

@@ -1,577 +1,990 @@
-// Add variable for cooldown.
-let bEnabled = true;
+/**
+ * Tesla Sentry Mode Viewer
+ * @author Mrkl21full (Krystian)
+ * @version 2.0
+ * @license MIT
+ * @repository https://github.com/Mrkl21full/SentryModeViewer
+ * @description JavaScript application for viewing Tesla Sentry Mode and Dashcam recordings
+ */
 
-// Prepare array for videos.
-let videos = {};
-let videoIndex = -1;
-let videosIndexes = [];
+const DEBUG = false;
 
-// Save state of current window.
-let currentWindow = 'front';
-let currentTimeframe = 0;
+/**
+ * Log message to console if DEBUG mode is enabled
+ * @param {string} message - Message to log
+ * @param {*} data - Optional data to log
+ */
+function debugLog(message, data = null) {
+    if (DEBUG) {
+        if (data !== null) {
+            console.log(`[DEBUG] ${message}`, data);
+        } else {
+            console.log(`[DEBUG] ${message}`);
+        }
+    }
+}
 
-// All videos data.
-let maxDuration = 0;
-let currentDuration = 0;
+/**
+ * Show user-facing message in alert
+ * @param {string} message - Message to show
+ */
+function showMessage(message) {
+    alert(message);
+    console.log(`[INFO] ${message}`);
+}
 
-// Get all required objects.
-const videoMain = document.querySelector('video[data-main]');
-const videoInput = document.querySelector('input[data-video-input]');
-const videoPlaybackControl = document.querySelector('i[data-video-toggle]');
-const videoExtraInformation = document.querySelector('i[data-currently-not-available-info]');
-const videoAdditionalControl = document.querySelector('i[data-currently-not-available]');
+/**
+ * Change favicon dynamically
+ * @param {string} state - State of the viewer: 'default', 'loading', 'paused'
+ */
+function changeFavicon(state = 'default') {
+    const faviconMap = {
+        'default': 'src/image/icons/SentryMode.png',
+        'loading': 'src/image/icons/SentryMode_Refresh.png',
+        'paused': 'src/image/icons/SentryMode_Pause.png'
+    };
 
-// Get time elements.
-const videoCurrentTime = document.querySelector('div[data-playback-current]');
-const videoDurationTime = document.querySelector('div[data-playback-duration]');
+    const iconPath = faviconMap[state] || faviconMap['default'];
+    const timestamp = new Date().getTime();
 
-// Get slider elements.
-const videoTimeSlider = document.querySelector('div[data-playback-slider]');
-const videoTimeSliderTracker = document.querySelector('div[data-playback-slider-tracker]');
-const videoTimeSliderTrackerTime = document.querySelector('div[data-playback-slider-tracker-time]');
-const videoTimeSliderTrackerEvent = document.querySelector('div[data-playback-slider-tracker-event]');
+    const link = document.querySelector('link[rel="icon"]');
+    const appleLink = document.querySelector('link[rel="apple-touch-icon"]');
 
-// Prepare all feedbacks.
-const videoPlaybacks = {
-    'video_back': document.querySelector('video[data-video-type="rear"]'),
-    'video_front': document.querySelector('video[data-video-type="front"]'),
-    'video_left_repeater': document.querySelector('video[data-video-type="left_repeater"]'),
-    'video_right_repeater': document.querySelector('video[data-video-type="right_repeater"]'),
-};
-
-// Add event for tab change to optimize performance.
-document.addEventListener("visibilitychange", () => {
-    // Remove any classes that might currently be in place.
-    videoPlaybackControl.classList.remove('fa-play');
-    videoPlaybackControl.classList.remove('fa-pause');
-
-    // Add play class to start all of videos.
-    videoPlaybackControl.classList.add('fa-play');
-
-    // Pause all available video tags.
-    document.querySelectorAll('video').forEach(v => v.pause());
-});
-
-// Add event to video browser.
-document.querySelector('i[data-video-browser]').addEventListener('click', openExplorer);
-
-// Add events to all window videos.
-videoPlaybacks['video_back'].addEventListener('click', windowChange);
-videoPlaybacks['video_front'].addEventListener('click', windowChange);
-videoPlaybacks['video_left_repeater'].addEventListener('click', windowChange);
-videoPlaybacks['video_right_repeater'].addEventListener('click', windowChange);
-
-// Add client event to calculate where we should move our video files.
-videoTimeSlider.addEventListener('click', (e) => playerMove(e));
-
-// Add event to main play / pause toggle.
-videoPlaybackControl.addEventListener('click', playerToggle);
-videoExtraInformation.addEventListener('click', () => alert('This feature is currently not available!'));
-videoAdditionalControl.addEventListener('click', () => alert('This feature is currently not available!'));
-
-// Add event for main video to switch to other files.
-videoMain.addEventListener('ended', () => {
-    // Check if we have any more files in line.
-    if (videos[videosIndexes[videoIndex + 1]] === undefined) {
-        return;
+    if (link) {
+        link.href = `${iconPath}?v=${timestamp}`;
     }
 
-    // Add current timeframe to current duration.
-    currentDuration += currentTimeframe;
-
-    // Update current timeframe.
-    currentTimeframe = 0;
-
-    // Switch video files.
-    switchVideoFiles(false);
-});
-
-// Add event for main video to switch to other files.
-videoMain.addEventListener('pause', () => {
-    // Check if currently we are playing this video.
-    const isPlaying = videoPlaybackControl.classList.contains('fa-pause');
-
-    // Check if we need to play video.
-    if (!isPlaying) {
-        return;
+    if (appleLink) {
+        appleLink.href = `${iconPath}?v=${timestamp}`;
     }
 
-    // Update all videos for current timeframe.
-    document.querySelectorAll('video').forEach(v => {
-        // Update all timeframes.
-        v.currentTime = currentTimeframe;
+    debugLog(`Favicon changed to: ${state}`);
+}
 
-        // Check if we need to play video.
-        if (v.paused) {
-            // Play current video.
-            v.play();
+class SentryModeViewer {
+    constructor() {
+        this.state = {
+            videos: {},
+            videoIndexes: [],
+            currentIndex: -1,
+            currentWindow: 'grid',
+            currentTimeframe: 0,
+            currentDuration: 0,
+            maxDuration: 0,
+            isPlaying: false,
+            cooldown: false,
+            eventData: null,
+            isLoading: false
+        };
+
+        this.elements = {
+            gridVideos: {
+                front: document.querySelector('[data-grid-video-type="front"]'),
+                back: document.querySelector('[data-grid-video-type="back"]'),
+                left_repeater: document.querySelector('[data-grid-video-type="left_repeater"]'),
+                right_repeater: document.querySelector('[data-grid-video-type="right_repeater"]'),
+                left_pillar: document.querySelector('[data-grid-video-type="left_pillar"]'),
+                right_pillar: document.querySelector('[data-grid-video-type="right_pillar"]')
+            },
+            thumbVideos: {
+                front: document.querySelector('[data-video-type="front"]'),
+                back: document.querySelector('[data-video-type="back"]'),
+                left_repeater: document.querySelector('[data-video-type="left_repeater"]'),
+                right_repeater: document.querySelector('[data-video-type="right_repeater"]'),
+                left_pillar: document.querySelector('[data-video-type="left_pillar"]'),
+                right_pillar: document.querySelector('[data-video-type="right_pillar"]')
+            },
+            thumbGridVideos: {
+                front: document.querySelector('[data-thumb-grid-type="front"]'),
+                back: document.querySelector('[data-thumb-grid-type="back"]'),
+                left_repeater: document.querySelector('[data-thumb-grid-type="left_repeater"]'),
+                right_repeater: document.querySelector('[data-thumb-grid-type="right_repeater"]')
+            },
+            thumbnails: document.querySelectorAll('.sentry-viewer__thumb'),
+            playButton: document.querySelector('[data-video-toggle]'),
+            rewind15: document.querySelector('[data-rewind-15]'),
+            forward15: document.querySelector('[data-forward-15]'),
+            jumpToEvent: document.querySelector('[data-jump-to-event]'),
+            menuButton: document.querySelector('[data-menu-toggle]'),
+            progressBar: document.querySelector('[data-playback-slider-tracker]'),
+            progressFill: document.querySelector('.sentry-viewer__progress-fill'),
+            eventMarker: document.querySelector('[data-playback-slider-tracker-event]'),
+            datetime: document.querySelector('[data-video-datetime]')
+        };
+
+        this.config = {
+            cooldownTime: 250,
+            allowedFileTypes: [
+                'video/mp4',
+                'application/json'
+            ],
+            videoFileTypes: [
+                'back.mp4',
+                'front.mp4',
+                'left_repeater.mp4',
+                'right_repeater.mp4',
+                'left_pillar.mp4',
+                'right_pillar.mp4'
+            ]
+        };
+
+        this.init();
+    }
+
+    /**
+     * Initialize viewer and bind events
+     */
+    init() {
+        this.bindEvents();
+        this.disablePlaybackControls();
+        changeFavicon('paused');
+        debugLog('Tesla Sentry Mode Viewer initialized');
+    }
+
+    /**
+     * Bind all event listeners
+     */
+    bindEvents() {
+        document.addEventListener('visibilitychange', () => this.handleVisibilityChange());
+
+        this.elements.menuButton?.addEventListener('click', () => this.openFolderPicker());
+        this.elements.playButton?.addEventListener('click', () => this.togglePlayback());
+        this.elements.rewind15?.addEventListener('click', () => this.seek(-15));
+        this.elements.forward15?.addEventListener('click', () => this.seek(15));
+        this.elements.jumpToEvent?.addEventListener('click', () => this.jumpToEvent());
+
+        const progressContainer = document.querySelector('.sentry-viewer__progress-container');
+        progressContainer?.addEventListener('click', (e) => this.handleProgressClick(e));
+
+        this.elements.thumbnails.forEach(thumb => {
+            thumb.addEventListener('click', () => this.handleThumbnailClick(thumb));
+        });
+
+        Object.values(this.elements.gridVideos).forEach(video => {
+            if (video) {
+                video.addEventListener('ended', () => this.handleVideoEnded());
+                video.addEventListener('timeupdate', () => this.handleTimeUpdate(video));
+                video.addEventListener('pause', () => this.handleVideoPause());
+            }
+        });
+
+        Object.values(this.elements.thumbVideos).forEach(video => {
+            if (video) {
+                video.addEventListener('pause', () => this.handleVideoPause());
+            }
+        });
+
+        Object.values(this.elements.thumbGridVideos).forEach(video => {
+            if (video) {
+                video.addEventListener('pause', () => this.handleVideoPause());
+            }
+        });
+    }
+
+    /**
+     * Handle browser tab visibility change
+     */
+    handleVisibilityChange() {
+        if (document.hidden) {
+            this.pauseAll();
         }
-    });
-});
+    }
 
-// Add event for main video to keep track of current timeframe.
-videoMain.addEventListener('timeupdate', () => {
-    // Save current time globally.
-    currentTimeframe = videoMain.currentTime;
-
-    // Update current time in timeline.
-    videoCurrentTime.innerHTML = convertNumToTime(currentDuration + videoMain.currentTime);
-
-    // Calculate percentage for slider.
-    const percentage = ((currentDuration + videoMain.currentTime) / maxDuration * 100);
-
-    // Move slider properly with time updated.
-    videoTimeSliderTracker.style.right = (100 - percentage) + '%';
-    videoTimeSliderTrackerTime.style.left = ((percentage - 1 >= 100) ? 99 : percentage - 1) + '%';
-})
-
-// Add event on input change so we can scan all files.
-document.addEventListener('change', (event) => {
-    // Get all uploaded files.
-    const files = event.target.files;
-
-    // Allowed types of files.
-    const fileTypes = [
-        'video/mp4',
-        'image/png',
-        'application/json',
-    ];
-
-    // Allowed file name types.
-    const videoTypes = [
-        'back.mp4',
-        'front.mp4',
-        'left_repeater.mp4',
-        'right_repeater.mp4',
-    ];
-
-    // Clear array of all videos.
-    videos = {};
-    maxDuration = 0;
-    videosIndexes = [];
-    currentDuration = 0;
-
-    // Save Sentry mode event fle for later.
-    let sentryModeFile = null;
-
-    // Loop through them...
-    for (let i = 0; i < files.length; i++) {
-        // Get current file itteration.
-        const file = files.item(i);
-
-        // Check if given type is allowed.
-        if (!fileTypes.includes(file.type)) {
-            // Put a nice alert so user can understand what happened.
-            clearVideoInput('One of the uploaded files has inproper file type!');
-            
-            // Break current loop and even the event.
+    /**
+     * Open folder picker for selecting recordings
+     */
+    async openFolderPicker() {
+        if (this.state.isLoading) {
+            debugLog('Already loading files, please wait...');
             return;
         }
 
-        if (file.type === 'image/png' && file.name !== 'thumb.png') {
-            // Put a nice alert so user can understand what happened.
-            clearVideoInput('Uploaded png file is not a thumb file!');
-            
-            // Break current loop and even the event.
+        if (this.state.isPlaying) {
+            this.pauseAll();
+            this.state.isPlaying = false;
+            this.elements.playButton?.querySelector('i')?.classList.remove('fa-pause');
+            this.elements.playButton?.querySelector('i')?.classList.add('fa-play');
+        }
+
+        changeFavicon('loading');
+
+        try {
+            if ('showDirectoryPicker' in window) {
+                const dirHandle = await window.showDirectoryPicker();
+                await this.loadFilesFromDirectory(dirHandle);
+            } else {
+                this.createFilePicker();
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Error opening folder:', error);
+                showMessage('Error opening folder. Please try again.');
+            }
+            this.state.isLoading = false;
+
+            if (this.state.videoIndexes.length > 0) {
+                changeFavicon('paused');
+            } else {
+                changeFavicon('paused');
+            }
+        }
+    }
+
+    /**
+     * Create fallback file picker input element
+     */
+    createFilePicker() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.webkitdirectory = true;
+        input.directory = true;
+
+        input.addEventListener('change', async (e) => {
+            await this.loadFilesFromInput(e.target.files);
+        });
+
+        input.click();
+    }
+
+    /**
+     * Load files from directory handle (File System Access API)
+     * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+     */
+    async loadFilesFromDirectory(dirHandle) {
+        const files = [];
+
+        for await (const entry of dirHandle.values()) {
+            if (entry.kind === 'file') {
+                const file = await entry.getFile();
+                files.push(file);
+            }
+        }
+
+        await this.processFiles(files);
+    }
+
+    /**
+     * Load files from input file list
+     * @param {FileList} fileList - File list from input
+     */
+    async loadFilesFromInput(fileList) {
+        const files = Array.from(fileList);
+        await this.processFiles(files);
+    }
+
+    /**
+     * Process selected files and load videos
+     * @param {Array<File>} files - Array of files to process
+     */
+    async processFiles(files) {
+        this.state.isLoading = true;
+
+        this.resetPlaybackState();
+        this.resetState();
+        this.updateGlobalPillarCamerasVisibility(false);
+
+        let eventFile = null;
+        let hasPillarCameras = false;
+
+        for (const file of files) {
+            if (!this.isValidFile(file)) {
+                continue;
+            }
+
+            if (file.type === 'video/mp4') {
+                this.processVideoFile(file);
+
+                if (file.name.includes('left_pillar') || file.name.includes('right_pillar')) {
+                    hasPillarCameras = true;
+                    debugLog('Found pillar camera:', file.name);
+                }
+            } else if (file.type === 'application/json' && file.name === 'event.json') {
+                eventFile = file;
+            }
+        }
+
+        this.calculateVideoRanges();
+
+        if (eventFile) {
+            await this.processEventFile(eventFile);
+        }
+
+        if (this.state.videoIndexes.length === 0) {
+            showMessage('No valid Tesla Sentry Mode videos found in the selected folder.');
+            this.state.isLoading = false;
+            changeFavicon('default');
             return;
         }
 
-        if (file.type === 'application/json' && file.name !== 'event.json') {
-            // Put a nice alert so user can understand what happened.
-            clearVideoInput('Uploaded json file is not a valid event file!');
-            
-            // Break current loop and even the event.
-            return;
+        this.updateGlobalPillarCamerasVisibility(hasPillarCameras);
+        this.updateDatetime(this.state.videoIndexes[0]);
+
+        const progressContainer = document.querySelector('.sentry-viewer__progress-container');
+        progressContainer?.classList.add('visible');
+
+        this.loadVideoSet(0);
+        this.enablePlaybackControls();
+
+        if (this.state.eventData) {
+            this.elements.jumpToEvent?.classList.add('visible');
         }
 
+        debugLog('Loaded videos:', this.state.videoIndexes.length);
+        debugLog('Pillar cameras available:', hasPillarCameras);
+
+        this.state.isLoading = false;
+        changeFavicon('paused');
+    }
+
+    /**
+     * Reset playback state and UI
+     */
+    resetPlaybackState() {
+        this.state.isPlaying = false;
+        this.pauseAll();
+
+        if (this.elements.playButton) {
+            this.elements.playButton.querySelector('i')?.classList.remove('fa-pause');
+            this.elements.playButton.querySelector('i')?.classList.add('fa-play');
+        }
+    }
+
+    /**
+     * Reset application state
+     */
+    resetState() {
+        this.state.videos = {};
+        this.state.videoIndexes = [];
+        this.state.currentIndex = -1;
+        this.state.maxDuration = 0;
+        this.state.currentDuration = 0;
+        this.state.currentTimeframe = 0;
+        this.state.eventData = null;
+    }
+
+    /**
+     * Disable playback controls before videos are loaded
+     */
+    disablePlaybackControls() {
+        this.elements.playButton?.classList.add('disabled');
+        this.elements.rewind15?.classList.add('disabled');
+        this.elements.forward15?.classList.add('disabled');
+
+        this.elements.playButton?.setAttribute('disabled', 'true');
+        this.elements.rewind15?.setAttribute('disabled', 'true');
+        this.elements.forward15?.setAttribute('disabled', 'true');
+    }
+
+    /**
+     * Enable playback controls after videos are loaded
+     */
+    enablePlaybackControls() {
+        this.elements.playButton?.classList.remove('disabled');
+        this.elements.rewind15?.classList.remove('disabled');
+        this.elements.forward15?.classList.remove('disabled');
+
+        this.elements.playButton?.removeAttribute('disabled');
+        this.elements.rewind15?.removeAttribute('disabled');
+        this.elements.forward15?.removeAttribute('disabled');
+    }
+
+    /**
+     * Check if file is valid Tesla video or event file
+     * @param {File} file - File to validate
+     * @returns {boolean} True if valid
+     */
+    isValidFile(file) {
         if (file.type === 'video/mp4') {
-            // Split file name.
-            const name = file.name.split('-');
+            const nameParts = file.name.split('-');
+            if (nameParts.length < 6) return false;
+            const videoType = nameParts[5];
+            return this.config.videoFileTypes.includes(videoType);
+        }
 
-            // Check if we have valid name for Tesla sentrymode file.
-            if (!videoTypes.includes(name[5])) {
-                // Put a nice alert so user can understand what happened.
-                clearVideoInput('Uploaded mp4 file is not a valid Tesla video file!');
-                
-                // Break current loop and even the event.
-                return;
-            }
+        if (file.type === 'application/json') {
+            return file.name === 'event.json';
+        }
 
-            // Remove last element from array.
-            const type = name.pop();
+        return false;
+    }
 
-            // Get index for new array.
-            const index = name.join('-');
+    /**
+     * Process single video file and add to collection
+     * @param {File} file - Video file to process
+     */
+    processVideoFile(file) {
+        const nameParts = file.name.split('-');
+        const videoType = nameParts[5].replace('.mp4', '');
 
-            // Split index so we can make it as date object.
-            const timeArr = index.split('_');
+        nameParts.pop();
+        const index = nameParts.join('-');
 
-            // Calculate duration for current video.
-            const duration = (file.lastModifiedDate - (new Date(timeArr[0].replaceAll('-', '/') + ' ' + timeArr[1].replaceAll('-', ':')))) / 1000;
+        const timeArr = index.split('_');
+        const startTime = new Date(timeArr[0].replaceAll('-', '/') + ' ' + timeArr[1].replaceAll('-', ':'));
+        const duration = 60;
 
-            // Check if this index already exits.
-            if (videos[index] === undefined) {
-                // If not, create new array at that index.
-                videos[index] = [];
-                videosIndexes.push(index);
+        if (!this.state.videos[index]) {
+            this.state.videos[index] = [];
+            this.state.videoIndexes.push(index);
+            this.state.maxDuration += duration;
+        }
 
-                // Add max duration during file scaning.
-                maxDuration += duration;
-            }
+        this.state.videos[index].push({
+            src: URL.createObjectURL(file),
+            name: file.name,
+            type: videoType,
+            startTime: startTime,
+            duration: duration,
+            file: file
+        });
+    }
 
-            // Add currrent video to array.
-            videos[index].push({
-                src: URL.createObjectURL(file),
-                name: file.name,
-                type: type.replace('.mp4', ''),
-                endTime: file.lastModifiedDate,
+    /**
+     * Calculate percentage ranges for video timeline
+     */
+    calculateVideoRanges() {
+        let currentPercentage = 0;
+
+        for (const index of this.state.videoIndexes) {
+            const videoSet = this.state.videos[index];
+            const duration = videoSet[0].duration;
+            const percentage = (duration / this.state.maxDuration) * 100;
+
+            videoSet.range = {
                 duration: duration,
-                startTime: new Date(timeArr[0].replaceAll('-', '/') + ' ' + timeArr[1].replaceAll('-', ':')),
-            });
-        }
+                percentage: percentage,
+                minPercentage: currentPercentage,
+                maxPercentage: currentPercentage + percentage
+            };
 
-        if (file.type === 'application/json' && file.name === 'event.json') {
-            // Save file for reader to read later.
-            sentryModeFile = file;
+            currentPercentage += percentage;
         }
     }
 
-    // Current percentage of calculated data video.
-    let currentPercentage = 0;
+    /**
+     * Process event.json file and mark event position
+     * @param {File} file - Event JSON file
+     */
+    async processEventFile(file) {
+        try {
+            const text = await file.text();
+            this.state.eventData = JSON.parse(text);
 
-    // Loop through all videos.
-    for (const [k, v] of Object.entries(videos)) {
-        const maxPercentage = parseFloat((v[0].duration / maxDuration * 100).toFixed(2));
+            const eventTime = new Date(this.state.eventData.timestamp);
 
-        // Add range of percentages to current video as 4th index.
-        videos[k].push({
-            'duration': parseFloat(v[0].duration),
-            'percentage': maxPercentage,
-            'minPercentage': (currentPercentage > 0) ? currentPercentage : 0,
-            'maxPercentage': currentPercentage + maxPercentage,
-        })
+            for (const index of this.state.videoIndexes) {
+                const videoSet = this.state.videos[index];
+                const startTime = videoSet[0].startTime;
+                const endTime = new Date(startTime.getTime() + videoSet[0].duration * 1000);
 
-        // Add current percentage to max percentage.
-        currentPercentage += maxPercentage;
-    }
+                if (eventTime >= startTime && eventTime <= endTime) {
+                    const offsetSeconds = (eventTime - startTime) / 1000;
+                    const offsetPercentage = (offsetSeconds / videoSet[0].duration) * videoSet.range.percentage;
+                    const eventPercentage = videoSet.range.minPercentage + offsetPercentage;
 
-    // Check if we have SentryMode event file parsed and ready to go.
-    if (sentryModeFile !== null) {
-        // Create new file reader and read file.
-        const reader = new FileReader();
-        reader.readAsText(sentryModeFile);
+                    this.elements.eventMarker.style.left = eventPercentage + '%';
+                    this.elements.eventMarker.classList.add('visible');
 
-        // Add event to reader.
-        reader.onload = function() {
-            // Get event data from json file.
-            const event = JSON.parse(reader.result);
-
-            // Get date from timestamp index and prepare name of days for html.
-            const date = new Date(event.timestamp);
-            const nameOfDays = [
-                'Sunday',
-                'Monday',
-                'Tuesday',
-                'Wednesday',
-                'Thursday',
-                'Friday',
-                'Saturday',
-            ];
-
-            // Determinate type of sentry mode event.
-            const sentryType = event.reason === 'sentry_aware_object_detection' ? 'SentryMode' : 'Dashcam';
-            const sentryData = event.timestamp.replace('T', '_').replace(':', '-').split(':');
-            const sentryTime = sentryData[0];
-
-            // Loop through all videos.
-            for (const [k, v] of Object.entries(videos)) {
-                // Find the one that matches the sentry mode event.
-                if (!k.indexOf(sentryTime)) {
-                    // @todo add event marker into timeline.
-                    const videoTime = k.split('-')[4];
-                    const eventTime = sentryData[1];
-
-                    // Calculate difference between event and video.
-                    let difference = eventTime - videoTime;
-
-                    if (difference < 0) {
-                        // @todo swticth video to previous video, and try to calculate it again.
-                        alert('We couldn\'t load event time pointer!');
-                        break;
-                    }
-
-                    // Calculare number of seconds inside current video clip.
-                    difference = v[4].duration - difference;
-
-                    // Add event point dot, where this event should been triggered.
-                    videoTimeSliderTrackerEvent.style.left = (v[4].minPercentage + (v[4].percentage / v[4].duration) * difference).toFixed(2) + '%';
                     break;
                 }
             }
-
-            // Load event data to html.
-            document.querySelector('p[data-video-event-message]').innerHTML = sentryType + ': ' + nameOfDays[date.getDay()] + ', ' + date.toLocaleString('en-US', { 
-                weekenday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            }) + ', around ' + ((date.getHours() < 10) ? '0' + date.getHours(): date.getHours()) + ':' + ((date.getMinutes() < 10) ? '0' + date.getMinutes(): date.getMinutes());
-        };
+        } catch (error) {
+            console.error('Error processing event file:', error);
+        }
     }
 
-    // Insert max duration to html element.
-    videoDurationTime.innerHTML = '~' + convertNumToTime(maxDuration);
-
-    // Update current index.
-    videoIndex = -1;
-    
-    // Switch video files.
-    switchVideoFiles(true);
-
-    // Update all slider settings, just in case.
-    videoTimeSliderTracker.style.right = '0%';
-    videoTimeSliderTrackerTime.style.left = '0%';
-
-    // Enable slider tracker time.
-    videoTimeSliderTrackerTime.style.display = 'block';
-    videoTimeSliderTrackerEvent.style.display = 'block';
-});
-
-function switchVideoFiles(bPause = false) {
-    // Check if we have any more files in line.
-    if (videos[videosIndexes[videoIndex + 1]] === undefined) {
-        return;
-    }
-
-    // Update current index.
-    videoIndex++;
-
-    // Load first video data into player.
-    const videoList = videos[videosIndexes[videoIndex]];
-
-    // Loop through each camera.
-    videoList.forEach((k) => {
-        // Check if we have any other object then video type.
-        if (typeof k.type === 'undefined') {
+    /**
+     * Load specific video set by index
+     * @param {number} index - Index of video set to load
+     */
+    loadVideoSet(index) {
+        if (index < 0 || index >= this.state.videoIndexes.length) {
             return;
         }
 
-        // Add new src settings to all video players.
-        videoPlaybacks['video_' + k.type].src = k.src;
+        this.state.currentIndex = index;
+        const videoKey = this.state.videoIndexes[index];
+        const videoSet = this.state.videos[videoKey];
 
-        // Check if we want to pause video.
-        if (bPause) {
-            // Pause window playback.
-            videoPlaybacks['video_' + k.type].pause();
-        }
+        videoSet.forEach(video => {
+            const gridVideo = this.elements.gridVideos[video.type];
+            const thumbVideo = this.elements.thumbVideos[video.type];
+            const thumbGridVideo = this.elements.thumbGridVideos[video.type];
 
-        // Loop for type that user have selected (or default one).
-        if (k.type === currentWindow) {
-            // Remove any active class from previous actions.
-            document.querySelector('div.sentry__body--window.active').classList.remove('active');
-
-            // Add new active class to front video.
-            videoPlaybacks['video_' + k.type].parentNode.classList.add('active');
-
-            // Replace main video url with new url.
-            videoMain.src = k.src;
-
-            // Check if we want to pause main video.
-            if (bPause) {
-                // Pause main video.
-                videoMain.pause();
+            if (gridVideo) {
+                gridVideo.src = video.src;
+                gridVideo.currentTime = this.state.currentTimeframe;
+                gridVideo.load();
             }
+
+            if (thumbVideo) {
+                thumbVideo.src = video.src;
+                thumbVideo.currentTime = this.state.currentTimeframe;
+                thumbVideo.load();
+            }
+
+            if (thumbGridVideo) {
+                thumbGridVideo.src = video.src;
+                thumbGridVideo.currentTime = this.state.currentTimeframe;
+                thumbGridVideo.load();
+            }
+        });
+    }
+
+    /**
+     * Update pillar camera thumbnails visibility
+     * @param {boolean} hasPillarCameras - Whether pillar cameras exist in folder
+     */
+    updateGlobalPillarCamerasVisibility(hasPillarCameras) {
+        const leftPillarThumb = document.querySelector('[data-camera-position="left-pillar"]');
+        const rightPillarThumb = document.querySelector('[data-camera-position="right-pillar"]');
+
+        if (hasPillarCameras) {
+            leftPillarThumb?.classList.add('visible');
+            rightPillarThumb?.classList.add('visible');
+            debugLog('Pillar camera thumbnails shown');
+        } else {
+            leftPillarThumb?.classList.remove('visible');
+            rightPillarThumb?.classList.remove('visible');
+            debugLog('Pillar camera thumbnails hidden');
         }
-    });
-
-    // Check if currently we are playing this video.
-    const isPlaying = videoPlaybackControl.classList.contains('fa-pause');
-
-    // Update all videos for current timeframe.
-    document.querySelectorAll('video').forEach(v => {
-        // Update all timeframes.
-        v.currentTime = currentTimeframe;
-
-        // Check if we need to play video.
-        if (isPlaying && v.paused) {
-            // Play current video.
-            v.play();
-        }
-    });
-}
-
-function clearVideoInput(message) {
-    // Clear current input.
-    videoInput.value = '';
-
-    // Clear array of all videos.
-    videos = {};
-
-    // Put a nice alert so user can understand what happened.
-    alert(message);
-}
-
-function openExplorer() {
-    // Get current state of the all players.
-    const bPlay = videoPlaybackControl.classList.contains('fa-pause');
-
-    // Check if player is stopped.
-    if (bPlay) {
-        // Toggle button.
-        videoPlaybackControl.classList.add('fa-play');
-        videoPlaybackControl.classList.remove('fa-pause');
-
-        // Pause all available video tags.
-        document.querySelectorAll('video').forEach(v => v.pause());
     }
 
-    // Clear that input and force click it.
-    videoInput.value = '';
-    videoInput.click();
-}
+    /**
+     * Handle thumbnail click and switch camera view
+     * @param {HTMLElement} thumb - Clicked thumbnail element
+     */
+    handleThumbnailClick(thumb) {
+        if (this.state.cooldown) return;
 
-// Declare function to handle clicking on each window.
-function windowChange() {
-    // Check if cooldown has passed.
-    if (!bEnabled) {
-        return;
-    }
+        const position = thumb.getAttribute('data-camera-position');
 
-    // Check if we have already active class for it.
-    if (this.parentNode.classList.contains('active')) {
-        return;
-    }
+        this.elements.thumbnails.forEach(t => t.classList.remove('sentry-viewer__thumb--active'));
+        thumb.classList.add('sentry-viewer__thumb--active');
 
-    // Remove any active class from previous actions.
-    document.querySelector('div.sentry__body--window.active').classList.remove('active');
+        this.state.currentWindow = position;
 
-    // Add active class to current video.
-    this.parentNode.classList.add('active');
-
-    // Check if currently we are playing this video.
-    const isPlaying = videoPlaybackControl.classList.contains('fa-pause');
-
-    // Check if we need to pause current video.
-    if (!isPlaying) {
-        // Pause current video playback.
-        videoMain.pause();
-    }
-
-    // Replace main video url with new url and seek to timeFrame.
-    videoMain.src = this.src;
-
-    // Update all videos for current timeframe.
-    document.querySelectorAll('video').forEach(v => {
-        // Update all timeframes.
-        v.currentTime = currentTimeframe;
-
-        // Check if we need to play video.
-        if (isPlaying && v.paused) {
-            // Play current video.
-            v.play();
-        }
-    });
-
-    // Save current window name.
-    currentWindow = this.getAttribute('data-video-type');
-
-    // Disable all actions.
-    disableActions();
-}
-
-function playerMove(e) {
-    // Check if cooldown has passed.
-    if (!bEnabled) {
-        return;
-    }
-
-    // Calculate % of user clicking position.
-    const rect = videoTimeSlider.getBoundingClientRect();
-    const offsetX = e.clientX - rect.left;
-    const percentageX = ((offsetX / rect.width) * 100).toFixed(2);
-
-    // Just in case, check if we are not out of bounds.
-    if (percentageX < 0) {
-        percentageX = 0;
-    }
-    else if (percentageX > 100) {
-        percentageX = 100;
-    }
-
-    // Calculate each duration for previous videos.
-    let previousVideosDuration = 0;
-
-    // Loop through all videos.
-    for (const [k, v] of Object.entries(videos)) {
-        // Check if we have match for current percentage.
-        if (percentageX >= v[4].minPercentage && percentageX <= v[4].maxPercentage) {
-            // Update all slider settings.
-            videoTimeSliderTracker.style.right = (100 - percentageX) + '%';
-            videoTimeSliderTrackerTime.style.left = (percentageX - 1) + '%';
-
-            // Calculate current duration and timeframe for video.
-            currentTimeframe = ((v[4].duration / v[4].percentage) * (percentageX - v[4].minPercentage));
-            currentDuration = previousVideosDuration;
-
-            // Update current index.
-            videoIndex = videosIndexes.indexOf(k) - 1;
-            
-            // Switch video files.
-            switchVideoFiles(!videoPlaybackControl.classList.contains('fa-pause'));
-            break;
+        if (position === 'grid') {
+            this.showGridView();
+        } else {
+            this.showSingleCameraView(position);
         }
 
-        // Add duration from previous videos.
-        previousVideosDuration += v[4].duration;
+        this.applyCooldown();
     }
 
-    // Disable all actions.
-    disableActions();
+    /**
+     * Show grid view with 4 main cameras (2x2)
+     */
+    showGridView() {
+        const gridCells = document.querySelectorAll('.sentry-viewer__video-grid-cell');
+        const mainCameras = [
+            'front',
+            'back',
+            'left_repeater',
+            'right_repeater'
+        ];
+
+        gridCells.forEach(cell => {
+            const video = cell.querySelector('[data-grid-video-type]');
+            const videoType = video?.getAttribute('data-grid-video-type');
+
+            if (mainCameras.includes(videoType)) {
+                cell.classList.remove('hidden', 'fullscreen');
+            } else {
+                cell.classList.add('hidden');
+                cell.classList.remove('fullscreen');
+            }
+        });
+    }
+
+    /**
+     * Show single camera in fullscreen
+     * @param {string} cameraPosition - Camera position identifier
+     */
+    showSingleCameraView(cameraPosition) {
+        const cameraMap = {
+            'front': 'front',
+            'rear': 'back',
+            'left-repeater': 'left_repeater',
+            'right-repeater': 'right_repeater',
+            'left-pillar': 'left_pillar',
+            'right-pillar': 'right_pillar'
+        };
+
+        const videoType = cameraMap[cameraPosition];
+        if (!videoType) return;
+
+        const gridCells = document.querySelectorAll('.sentry-viewer__video-grid-cell');
+
+        gridCells.forEach(cell => {
+            const video = cell.querySelector('[data-grid-video-type]');
+            const cellVideoType = video?.getAttribute('data-grid-video-type');
+
+            if (cellVideoType === videoType) {
+                cell.classList.remove('hidden');
+                cell.classList.add('fullscreen');
+            } else {
+                cell.classList.add('hidden');
+                cell.classList.remove('fullscreen');
+            }
+        });
+    }
+
+    /**
+     * Toggle video playback (play/pause)
+     */
+    togglePlayback() {
+        if (this.state.cooldown) return;
+
+        if (this.state.videoIndexes.length === 0) {
+            debugLog('No videos loaded, cannot toggle playback');
+            return;
+        }
+
+        this.state.isPlaying = !this.state.isPlaying;
+
+        if (this.state.isPlaying) {
+            this.playAll();
+            this.elements.playButton.querySelector('i').classList.remove('fa-play');
+            this.elements.playButton.querySelector('i').classList.add('fa-pause');
+            changeFavicon('default');
+        } else {
+            this.pauseAll();
+            this.elements.playButton.querySelector('i').classList.remove('fa-pause');
+            this.elements.playButton.querySelector('i').classList.add('fa-play');
+            changeFavicon('paused');
+        }
+
+        this.applyCooldown();
+    }
+
+    /**
+     * Play all videos (grid, thumbnails, and thumbnail grid)
+     */
+    playAll() {
+        Object.values(this.elements.gridVideos).forEach(video => {
+            if (video && video.paused) {
+                video.play().catch(e => console.warn('Could not play video:', e));
+            }
+        });
+
+        Object.values(this.elements.thumbVideos).forEach(video => {
+            if (video && video.paused) {
+                video.play().catch(e => console.warn('Could not play thumbnail video:', e));
+            }
+        });
+
+        Object.values(this.elements.thumbGridVideos).forEach(video => {
+            if (video && video.paused) {
+                video.play().catch(e => console.warn('Could not play thumb grid video:', e));
+            }
+        });
+    }
+
+    /**
+     * Pause all videos (grid, thumbnails, and thumbnail grid)
+     */
+    pauseAll() {
+        Object.values(this.elements.gridVideos).forEach(video => {
+            if (video && !video.paused) {
+                video.pause();
+            }
+        });
+
+        Object.values(this.elements.thumbVideos).forEach(video => {
+            if (video && !video.paused) {
+                video.pause();
+            }
+        });
+
+        Object.values(this.elements.thumbGridVideos).forEach(video => {
+            if (video && !video.paused) {
+                video.pause();
+            }
+        });
+    }
+
+    /**
+     * Seek forward or backward by specified seconds
+     * @param {number} seconds - Seconds to seek (negative for backward)
+     */
+    seek(seconds) {
+        if (this.state.cooldown) return;
+
+        if (this.state.videoIndexes.length === 0) {
+            debugLog('No videos loaded, cannot seek');
+            return;
+        }
+
+        const newTime = this.state.currentTimeframe + seconds;
+        const wasPlaying = this.state.isPlaying;
+
+        if (newTime < 0) {
+            if (this.state.currentIndex > 0) {
+                this.state.currentDuration -= this.state.videos[this.state.videoIndexes[this.state.currentIndex]].range.duration;
+                this.state.currentIndex--;
+                this.loadVideoSet(this.state.currentIndex);
+                this.state.currentTimeframe = this.state.videos[this.state.videoIndexes[this.state.currentIndex]].range.duration + newTime;
+            } else {
+                this.state.currentTimeframe = 0;
+            }
+        } else if (newTime > this.getCurrentVideoDuration()) {
+            if (this.state.currentIndex < this.state.videoIndexes.length - 1) {
+                this.state.currentDuration += this.state.videos[this.state.videoIndexes[this.state.currentIndex]].range.duration;
+                this.state.currentIndex++;
+                this.loadVideoSet(this.state.currentIndex);
+                this.state.currentTimeframe = newTime - this.getCurrentVideoDuration();
+            } else {
+                this.state.currentTimeframe = this.getCurrentVideoDuration();
+            }
+        } else {
+            this.state.currentTimeframe = newTime;
+        }
+
+        this.syncAllVideos();
+
+        if (wasPlaying) {
+            this.playAll();
+        }
+
+        this.applyCooldown();
+    }
+
+    /**
+     * Get duration of current video set
+     * @returns {number} Duration in seconds
+     */
+    getCurrentVideoDuration() {
+        if (this.state.currentIndex < 0) return 0;
+        const videoKey = this.state.videoIndexes[this.state.currentIndex];
+        return this.state.videos[videoKey]?.range?.duration || 0;
+    }
+
+    /**
+     * Synchronize currentTime across all videos
+     */
+    syncAllVideos() {
+        Object.values(this.elements.gridVideos).forEach(video => {
+            if (video) {
+                video.currentTime = this.state.currentTimeframe;
+            }
+        });
+
+        Object.values(this.elements.thumbVideos).forEach(video => {
+            if (video) {
+                video.currentTime = this.state.currentTimeframe;
+            }
+        });
+
+        Object.values(this.elements.thumbGridVideos).forEach(video => {
+            if (video) {
+                video.currentTime = this.state.currentTimeframe;
+            }
+        });
+    }
+
+    /**
+     * Handle video ended event and move to next video set
+     */
+    handleVideoEnded() {
+        if (this.state.currentIndex < this.state.videoIndexes.length - 1) {
+            this.state.currentDuration += this.getCurrentVideoDuration();
+            this.state.currentTimeframe = 0;
+            this.state.currentIndex++;
+            this.loadVideoSet(this.state.currentIndex);
+
+            if (this.state.isPlaying) {
+                this.playAll();
+            }
+        } else {
+            this.pauseAll();
+            this.state.isPlaying = false;
+            this.elements.playButton.querySelector('i').classList.remove('fa-pause');
+            this.elements.playButton.querySelector('i').classList.add('fa-play');
+            changeFavicon('paused');
+        }
+    }
+
+    /**
+     * Handle video time update and update UI
+     * @param {HTMLVideoElement} video - Video element that fired the event
+     */
+    handleTimeUpdate(video) {
+        if (video !== Object.values(this.elements.gridVideos)[0]) return;
+
+        this.state.currentTimeframe = video.currentTime;
+
+        const totalTime = this.state.currentDuration + this.state.currentTimeframe;
+        const percentage = (totalTime / this.state.maxDuration) * 100;
+
+        this.elements.progressFill.style.width = percentage + '%';
+        this.updateDatetimeWithOffset();
+    }
+
+    /**
+     * Handle video pause event and resume if needed
+     */
+    handleVideoPause() {
+        if (this.state.isPlaying) {
+            this.syncAllVideos();
+            this.playAll();
+        }
+    }
+
+    /**
+     * Handle progress bar click and seek to position
+     * @param {MouseEvent} e - Click event
+     */
+    handleProgressClick(e) {
+        if (this.state.cooldown) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const percentage = (clickX / rect.width) * 100;
+
+        this.seekToPercentage(percentage);
+        this.applyCooldown();
+    }
+
+    /**
+     * Seek to specific percentage in timeline
+     * @param {number} percentage - Percentage (0-100) to seek to
+     */
+    seekToPercentage(percentage) {
+        let accumulatedDuration = 0;
+
+        for (let i = 0; i < this.state.videoIndexes.length; i++) {
+            const videoKey = this.state.videoIndexes[i];
+            const videoSet = this.state.videos[videoKey];
+            const range = videoSet.range;
+
+            if (percentage >= range.minPercentage && percentage <= range.maxPercentage) {
+                this.state.currentIndex = i - 1;
+                this.state.currentDuration = accumulatedDuration;
+
+                const offsetPercentage = percentage - range.minPercentage;
+                this.state.currentTimeframe = (offsetPercentage / range.percentage) * range.duration;
+
+                this.loadVideoSet(i);
+                this.syncAllVideos();
+
+                if (this.state.isPlaying) {
+                    this.playAll();
+                }
+
+                break;
+            }
+
+            accumulatedDuration += range.duration;
+        }
+    }
+
+    /**
+     * Jump to event marker position
+     */
+    jumpToEvent() {
+        if (!this.state.eventData || this.state.cooldown) return;
+
+        const eventPercentage = parseFloat(this.elements.eventMarker.style.left);
+        this.seekToPercentage(eventPercentage);
+        this.applyCooldown();
+    }
+
+    /**
+     * Update datetime display with video start time
+     * @param {string} videoIndex - Video index string (timestamp)
+     */
+    updateDatetime(videoIndex) {
+        if (!videoIndex) return;
+
+        const timeArr = videoIndex.split('_');
+        const date = new Date(timeArr[0].replaceAll('-', '/') + ' ' + timeArr[1].replaceAll('-', ':'));
+
+        const dayNames = [
+            'Sun',
+            'Mon',
+            'Tue',
+            'Wed',
+            'Thu',
+            'Fri',
+            'Sat'
+        ];
+        const monthNames = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec'
+        ];
+
+        this.elements.datetime.textContent = `${dayNames[date.getDay()]}, ${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+    }
+
+    /**
+     * Update datetime with current playback offset
+     */
+    updateDatetimeWithOffset() {
+        if (this.state.currentIndex < 0 || this.state.videoIndexes.length === 0) return;
+
+        const videoKey = this.state.videoIndexes[this.state.currentIndex];
+        const videoSet = this.state.videos[videoKey];
+
+        if (!videoSet || !videoSet[0]) return;
+
+        const startTime = videoSet[0].startTime;
+        const currentTime = new Date(startTime.getTime() + (this.state.currentTimeframe * 1000));
+
+        const dayNames = [
+            'Sun',
+            'Mon',
+            'Tue',
+            'Wed',
+            'Thu',
+            'Fri',
+            'Sat'
+        ];
+        const monthNames = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec'
+        ];
+
+        this.elements.datetime.textContent = `${dayNames[currentTime.getDay()]}, ${monthNames[currentTime.getMonth()]} ${currentTime.getDate()}, ${currentTime.getFullYear()} ${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}:${String(currentTime.getSeconds()).padStart(2, '0')}`;
+    }
+
+    /**
+     * Apply cooldown to prevent rapid actions
+     */
+    applyCooldown() {
+        this.state.cooldown = true;
+        setTimeout(() => {
+            this.state.cooldown = false;
+        }, this.config.cooldownTime);
+    }
 }
 
-function playerToggle() {
-    // Check if cooldown has passed.
-    if (!bEnabled) {
-        return;
-    }
-
-    // Get current state of the all players.
-    const bPlay = this.classList.contains('fa-play');
-
-    // Check if player is stopped.
-    if (bPlay) {
-        // Toggle button.
-        this.classList.add('fa-pause');
-        this.classList.remove('fa-play');
-
-        // Play all available video tags.
-        document.querySelectorAll('video').forEach(v => v.play());
-    }
-    else {
-        // Toggle button.
-        this.classList.add('fa-play');
-        this.classList.remove('fa-pause');
-
-        // Pause all available video tags.
-        document.querySelectorAll('video').forEach(v => v.pause());
-    }
-
-    // Disable all actions.
-    disableActions();
-}
-
-function disableActions() {
-    // Mark it as non-executable.
-    bEnabled = false;
-
-    // Add timeout for this button.
-    setTimeout(() => bEnabled = true, 250);
-}
-
-// Convert number to time.
-function convertNumToTime(seconds) {
-    return new Date(seconds * 1000).toLocaleTimeString([], {
-        minute: "numeric",
-        second: "2-digit",
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.sentryViewer = new SentryModeViewer();
     });
+} else {
+    window.sentryViewer = new SentryModeViewer();
 }
