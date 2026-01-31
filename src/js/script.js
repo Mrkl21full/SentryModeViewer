@@ -2,7 +2,7 @@
  * Tesla Sentry Mode Viewer
  * @author Mrkl21full (Krystian)
  * @version 2.0
- * @license MIT
+ * @license GPL-3.0
  * @repository https://github.com/Mrkl21full/SentryModeViewer
  * @description JavaScript application for viewing Tesla Sentry Mode and Dashcam recordings
  */
